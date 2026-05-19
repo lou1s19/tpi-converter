@@ -190,6 +190,19 @@ button {
   width: 100%;
 }
 
+.site-footer {
+  max-width: var(--content-width);
+  margin: 26px auto 0;
+  padding: 18px 0 0;
+  border-top: 1px solid rgba(195, 197, 215, 0.58);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 .topbar {
   min-height: 52px;
   display: flex;
