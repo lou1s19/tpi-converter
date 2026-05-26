@@ -263,11 +263,30 @@ function setupFeedbackForm() {
 }
 
 
+// Mobile menu toggle
+function setupMobileMenu() {
+  const menuToggles = document.querySelectorAll('.menu-toggle');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+  const toggleMenu = () => {
+    document.body.classList.toggle('menu-open');
+  };
+
+  menuToggles.forEach(btn => {
+    btn.addEventListener('click', toggleMenu);
+  });
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', toggleMenu);
+  }
+}
+
 // Initialize all functionality when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   setupCategoryFilter();
   setupFeedbackForm();
   setupBetaAccess();
+  setupMobileMenu();
   
   console.log('Transformers initialized successfully.');
 });

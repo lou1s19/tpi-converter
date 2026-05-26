@@ -4,18 +4,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TPI Media - WebP-Konverter</title>
+  <title>WebP-Converter - TPI Media</title>
   <link rel="icon" type="image/png" href="../bilder/fav.png" />
   <link rel="stylesheet" href="../vendor/cropper.min.css" />
-  <link rel="stylesheet" href="../css/image.css" />
+  <link rel="stylesheet" href="../css/webp-converter.css?v=1.1" />
   <script defer src="../vendor/jszip.min.js"></script>
   <script defer src="../vendor/heic2any.min.js"></script>
   <script defer src="../vendor/piexif.min.js"></script>
   <script defer src="../vendor/cropper.min.js"></script>
-  <script type="module" src="../js/image.js"></script>
+  <script type="module" src="../js/webp-converter.js?v=1.1"></script>
 </head>
 
 <body class="converter-page">
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <header class="mobile-header">
+    <span class="mobile-brand">TPI Media Tools</span>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menü öffnen">
+      <svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+  </header>
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="../index.html">
@@ -24,7 +35,7 @@
         </span>
         <span class="brand-copy">
           <strong>TPI Media</strong>
-          <span>Produktivitätssuite</span>
+          <span>Tools</span>
         </span>
       </a>
 
@@ -36,7 +47,7 @@
           </span>
           <span>Dashboard</span>
         </a>
-        <a class="nav-item active" href="image.html">
+        <a class="nav-item active" href="../webp-converter/">
           <span class="nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" class="svg-icon"><path d="M5 3h10l4 4v14H5zm9 1.8V8h3.2zM7 12.2h1.2l.5 3.5.8-3.5h1l.8 3.5.5-3.5H13L12 18h-1.2l-.8-3.4L9.2 18H8zm6.8 0h3.1c1.1 0 1.8.7 1.8 1.7s-.7 1.7-1.8 1.7H15V18h-1.2zm1.2 1v1.4h1.7c.5 0 .8-.3.8-.7s-.3-.7-.8-.7z" /></svg>
           </span>
@@ -46,13 +57,13 @@
 
       <div class="sidebar-footer">
         <span class="nav-category">Support</span>
-        <a class="nav-item secondary" href="help.html">
+        <a class="nav-item secondary" href="../help/">
           <span class="nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" class="svg-icon"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 17a1.25 1.25 0 1 1 1.25-1.25A1.25 1.25 0 0 1 12 19Zm1-4.1v.6h-2v-1.1a3.4 3.4 0 0 1 1.6-2.9c.8-.6 1.4-1 1.4-2a2.1 2.1 0 0 0-4.2 0H8a4 4 0 0 1 8 0c0 1.8-1 2.6-2 3.3a2.2 2.2 0 0 0-1 2.1Z" /></svg>
           </span>
           <span>Hilfe</span>
         </a>
-        <a class="nav-item secondary" href="contact.html">
+        <a class="nav-item secondary" href="../contact/">
           <span class="nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" class="svg-icon"><path d="M12 3.5A4.5 4.5 0 0 0 7.5 8v8A4.5 4.5 0 0 0 12 20.5h0A4.5 4.5 0 0 0 16.5 16v-8A4.5 4.5 0 0 0 12 3.5Zm0 2A2.5 2.5 0 0 1 14.5 8v8a2.5 2.5 0 0 1-5 0v-8A2.5 2.5 0 0 1 12 5.5Zm0 2a1.5 1.5 0 0 0-1.5 1.5v6a1.5 1.5 0 0 0 3 0V9A1.5 1.5 0 0 0 12 7.5Z" /></svg>
           </span>
@@ -108,6 +119,57 @@
           </div>
 
           <aside class="side-stack">
+            <section class="panel presets-panel">
+              <details class="presets-details" open>
+                <summary>
+                  <span>Größen-Vorlagen</span>
+                  <span class="panel-subtle">Häufige Formate</span>
+                </summary>
+                <div class="preset-actions" aria-label="Bildgrößen-Presets">
+                  <button class="preset-btn" type="button" data-preset="original">Originalgröße</button>
+                  <button class="preset-btn" type="button" data-preset="hero">Groß / Banner (1920px)</button>
+                  <button class="preset-btn" type="button" data-preset="web">Standard / Beitrag (1200px)</button>
+                  <button class="preset-btn" type="button" data-preset="square">Quadrat / Social (1080px)</button>
+                  <button class="preset-btn" type="button" data-preset="mobile">Smartphone / Mobil (768px)</button>
+                </div>
+              </details>
+            </section>
+
+            <section id="settings" class="panel settings-panel">
+              <div class="panel-head">
+                <h2>Einstellungen</h2>
+                <span class="panel-subtle">Export-Steuerung</span>
+              </div>
+
+              <div class="toggles">
+                <div class="mode-row">
+                  <span id="mode-label" class="mode-label">Pixel</span>
+                  <span class="mode-hint">Fest</span>
+                </div>
+                <label class="inline-toggle" title="Wendet die aktuell eingestellte Größe auf alle hochgeladenen Bilder an.">
+                  <input type="checkbox" id="bulk-scale" /> Auf alle Bilder anwenden
+                </label>
+                <label class="inline-toggle" title="Verhindert, dass Bilder bei manueller Eingabe von Breite/Höhe verzerrt werden.">
+                  <input type="checkbox" id="keep-aspect" checked /> Seitenverhältnis beibehalten
+                </label>
+              </div>
+
+              <div class="action-buttons">
+                <button id="download-btn" class="primary-button" disabled>Herunterladen</button>
+                <button id="select-mode-btn" class="secondary-button" type="button">Auswählen</button>
+                <button id="duplicate-selected-btn" class="secondary-button selection-action" type="button" disabled>Duplizieren</button>
+                <button id="delete-selected-btn" class="secondary-button danger-button selection-action" type="button" disabled>Löschen</button>
+              </div>
+
+              <div class="secondary-actions">
+                <label class="append-toggle">
+                  <input type="checkbox" id="append-mode">
+                  Anhängen statt Ersetzen
+                </label>
+                <span class="undo-hint">Tipp: Bei aktivem Seitenverhältnis bleiben Breite und Höhe gekoppelt.</span>
+              </div>
+            </section>
+
             <section class="panel quick-links-panel">
               <div class="panel-head">
                 <h2>Schnelllinks</h2>
@@ -128,60 +190,10 @@
                 </a>
               </div>
             </section>
-
-            <section id="settings" class="panel settings-panel">
-              <div class="panel-head">
-                <h2>Einstellungen</h2>
-                <span class="panel-subtle">Export-Steuerung</span>
-              </div>
-
-              <div class="toggles">
-                <div class="mode-row">
-                  <span id="mode-label" class="mode-label">Pixel</span>
-                  <span class="mode-hint">Fest</span>
-                </div>
-                <label class="inline-toggle"><input type="checkbox" id="bulk-scale" /> Gleiche Skalierung</label>
-                <label class="inline-toggle"><input type="checkbox" id="keep-aspect" checked /> Seitenverhältnis beibehalten</label>
-              </div>
-
-              <div class="action-buttons">
-                <button id="download-btn" class="primary-button" disabled>Herunterladen</button>
-                <button id="select-mode-btn" class="secondary-button" type="button">Auswählen</button>
-                <button id="duplicate-selected-btn" class="secondary-button selection-action" type="button" disabled>Duplizieren</button>
-                <button id="delete-selected-btn" class="secondary-button danger-button selection-action" type="button" disabled>Löschen</button>
-              </div>
-
-              <div class="secondary-actions">
-                <label class="append-toggle">
-                  <input type="checkbox" id="append-mode">
-                  Anhängen statt Ersetzen
-                </label>
-                <span class="undo-hint">Tipp: Bei aktivem Seitenverhältnis bleiben Breite und Höhe gekoppelt.</span>
-              </div>
-            </section>
-
-            <section class="panel presets-panel">
-              <details class="presets-details">
-                <summary>
-                  <span>Pressests</span>
-                  <span class="panel-subtle">Bildgrößen</span>
-                </summary>
-                <div class="preset-actions" aria-label="Bildgrößen-Presets">
-                  <button class="preset-btn" type="button" data-preset="original">Original</button>
-                  <button class="preset-btn" type="button" data-preset="web">Web 1200</button>
-                  <button class="preset-btn" type="button" data-preset="hero">Hero 1920</button>
-                  <button class="preset-btn" type="button" data-preset="mobile">Mobile 768</button>
-                  <button class="preset-btn" type="button" data-preset="square">Quadrat 1080</button>
-                </div>
-              </details>
-            </section>
           </aside>
         </section>
       </main>
-      <footer class="site-footer">
-        <span>TPI Media</span>
-        <span>2026</span>
-      </footer>
+
     </div>
   </div>
 

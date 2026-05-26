@@ -1695,4 +1695,24 @@ function detectAndRemoveBorders(item) {
   return { detected: false };
 }
 
+// Mobile menu toggle
+function setupMobileMenu() {
+  const menuToggles = document.querySelectorAll('.menu-toggle');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+  const toggleMenu = () => {
+    document.body.classList.toggle('menu-open');
+  };
+
+  menuToggles.forEach(btn => {
+    btn.addEventListener('click', toggleMenu);
+  });
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', toggleMenu);
+  }
+}
+
+setupMobileMenu();
+
 updateUI();
