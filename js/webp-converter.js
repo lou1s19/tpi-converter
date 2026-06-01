@@ -549,9 +549,9 @@ function renderGallery() {
   });
 }
 
-// Berechnet proportionale Zeichenkoordinaten (object-fit: contain)
+// Berechnet proportionale Zeichenkoordinaten (object-fit: cover)
 function calcContain(srcW, srcH, dstW, dstH) {
-  const scale = Math.min(dstW / srcW, dstH / srcH);
+  const scale = Math.max(dstW / srcW, dstH / srcH);
   const drawW = srcW * scale;
   const drawH = srcH * scale;
   const offsetX = (dstW - drawW) / 2;
