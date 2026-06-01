@@ -81,7 +81,7 @@ button {
   flex-direction: column;
   justify-content: flex-start;
   gap: 18px;
-  background: linear-gradient(180deg, rgba(255, 247, 235, 0.92), rgba(255, 252, 247, 0.96));
+  background: #ffffff;
   border: 1px solid rgba(195, 197, 215, 0.7);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
