@@ -151,6 +151,12 @@ button {
   transition: background-color 160ms ease, color 160ms ease;
 }
 
+.nav-item.secondary {
+  min-height: 44px;
+  font-size: 0.96rem;
+  color: var(--text-soft);
+}
+
 .nav-item:hover {
   background: #F2EDED;
   color: var(--text);
@@ -162,11 +168,7 @@ button {
   font-weight: 700;
 }
 
-.nav-item.secondary {
-  min-height: 44px;
-  font-size: 0.96rem;
-  color: var(--text-soft);
-}
+
 
 .nav-icon {
   width: 24px;
@@ -181,7 +183,7 @@ button {
 }
 
 .nav-item.active .nav-icon {
-  color: var(--accent);
+  color: inherit;
 }
 
 .nav-category {
