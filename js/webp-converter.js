@@ -674,17 +674,10 @@ function applyImagePreset(preset) {
       return;
     }
 
-    if (preset === 'square') {
-      item.width = 1080;
-      item.height = 1080;
-      item.scalePercent = Math.round((1080 / Math.max(item.img.width, item.img.height)) * 100);
-      return;
-    }
-
     const sizes = {
-      web: 1200,
-      hero: 1920,
-      mobile: 768
+      banner: 1200,
+      large: 800,
+      small: 500
     };
     scaleToLongEdge(item, sizes[preset] || 1200);
   });

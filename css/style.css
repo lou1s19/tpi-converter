@@ -551,12 +551,12 @@ button {
   background: linear-gradient(180deg, #ff9d1f, var(--accent));
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 16px 30px rgba(255, 138, 0, 0.2);
+  box-shadow: none;
 }
 
 .contact-mail:hover {
   transform: translateY(-1px);
-  box-shadow: 0 20px 34px rgba(255, 138, 0, 0.26);
+  box-shadow: none;
 }
 
 .tool-badge {
