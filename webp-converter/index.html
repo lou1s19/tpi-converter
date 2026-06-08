@@ -123,6 +123,7 @@
                 </summary>
                 <div class="preset-actions" aria-label="Bildgrößen-Presets">
                   <button class="preset-btn" type="button" data-preset="original">Originalgröße</button>
+                  <button class="preset-btn" type="button" data-preset="banner-fullhd">FullHD-Banner (1920px)</button>
                   <button class="preset-btn" type="button" data-preset="banner">Banner (1200px)</button>
                   <button class="preset-btn" type="button" data-preset="large">Große Bilder (800px)</button>
                   <button class="preset-btn" type="button" data-preset="small">Kleine Bilder (500px)</button>
@@ -147,6 +148,13 @@
                 <label class="inline-toggle" title="Verhindert, dass Bilder bei manueller Eingabe von Breite/Höhe verzerrt werden.">
                   <input type="checkbox" id="keep-aspect" checked /> Seitenverhältnis beibehalten
                 </label>
+                <div class="quality-row">
+                  <span class="quality-label">Qualität</span>
+                  <div class="quality-slider-group">
+                    <input type="range" id="quality-slider" min="0" max="100" value="92" class="quality-slider" />
+                    <span id="quality-value" class="quality-val">92%</span>
+                  </div>
+                </div>
               </div>
 
               <div class="action-buttons">

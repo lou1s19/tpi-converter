@@ -782,6 +782,46 @@ body.replace-mode .primary-cta {
   background: rgba(242, 237, 237, 0.72);
 }
 
+.quality-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(195, 197, 215, 0.8);
+  background: rgba(242, 237, 237, 0.72);
+}
+
+.quality-label {
+  font-size: 0.95rem;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.quality-slider-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.quality-slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.quality-val {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 34px;
+  text-align: right;
+}
+
 body.append-mode .append-toggle {
   border-color: rgba(176, 176, 176, 0.4);
   background: rgba(176, 176, 176, 0.1);

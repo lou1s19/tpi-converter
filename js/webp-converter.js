@@ -24,6 +24,8 @@ const btnApplyCrop = document.getElementById('crop-apply');
 const btnApplyCropAll = document.getElementById('crop-apply-all');
 const btnCancelCrop = document.getElementById('crop-cancel');
 const appendMode = document.getElementById('append-mode');
+const qualitySlider = document.getElementById('quality-slider');
+const qualityValueLabel = document.getElementById('quality-value');
 const isPercentMode = () => !!modeToggle?.checked;
 
 let images = [];
@@ -31,6 +33,7 @@ let selectionMode = false;
 let currentCropIndex = null;
 let cropper = null;
 const MAX_IMAGES = 50;
+let webpQuality = 92;
 
 // === Undo-History ===
 let undoHistory = [];
@@ -202,6 +205,11 @@ fileInput?.addEventListener('change', () => {
 
 keepAspect?.addEventListener('change', () => updateUI());
 appendMode?.addEventListener('change', () => updateUI());
+
+qualitySlider?.addEventListener('input', () => {
+  webpQuality = +qualitySlider.value;
+  if (qualityValueLabel) qualityValueLabel.textContent = webpQuality + '%';
+});
 
 
 
@@ -675,6 +683,7 @@ function applyImagePreset(preset) {
     }
 
     const sizes = {
+      'banner-fullhd': 1920,
       banner: 1200,
       large: 800,
       small: 500
@@ -885,6 +894,98 @@ async function canvasToSvg(canvas) {
 }
 
 
+// === WebP EXIF: 72 DPI injection ===
+function buildExif72dpi() {
+  const d = new Uint8Array(72);
+  // "Exif\0\0"
+  d.set([0x45, 0x78, 0x69, 0x66, 0x00, 0x00], 0);
+  // TIFF header (little-endian "II", magic 42, IFD offset 8)
+  d.set([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00], 6);
+  // IFD entry count = 3
+  d.set([0x03, 0x00], 14);
+  // Entry 1: XResolution (tag 0x011A, RATIONAL, count 1, TIFF offset 50)
+  d.set([0x1A, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00], 16);
+  // Entry 2: YResolution (tag 0x011B, RATIONAL, count 1, TIFF offset 58)
+  d.set([0x1B, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0x00], 28);
+  // Entry 3: ResolutionUnit (tag 0x0128, SHORT, count 1, value 2=inch)
+  d.set([0x28, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00], 40);
+  // Next IFD offset = 0
+  d.set([0x00, 0x00, 0x00, 0x00], 52);
+  // XResolution = 72/1 at TIFF offset 50 (array position 56)
+  d.set([0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], 56);
+  // YResolution = 72/1 at TIFF offset 58 (array position 64)
+  d.set([0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], 64);
+  return d;
+}
+
+function _readStr4(arr, off) {
+  return String.fromCharCode(arr[off], arr[off + 1], arr[off + 2], arr[off + 3]);
+}
+function _read32le(arr, off) {
+  return (arr[off] | (arr[off + 1] << 8) | (arr[off + 2] << 16) | (arr[off + 3] << 24)) >>> 0;
+}
+function _write32le(arr, off, val) {
+  arr[off] = val & 0xFF;
+  arr[off + 1] = (val >>> 8) & 0xFF;
+  arr[off + 2] = (val >>> 16) & 0xFF;
+  arr[off + 3] = (val >>> 24) & 0xFF;
+}
+function _write24le(arr, off, val) {
+  arr[off] = val & 0xFF;
+  arr[off + 1] = (val >>> 8) & 0xFF;
+  arr[off + 2] = (val >>> 16) & 0xFF;
+}
+
+async function addExifDpiToWebP(blob, canvasWidth, canvasHeight) {
+  if (!blob) return blob;
+  const origBuf = await blob.arrayBuffer();
+  const orig = new Uint8Array(origBuf);
+  if (orig.length < 12 || _readStr4(orig, 0) !== 'RIFF' || _readStr4(orig, 8) !== 'WEBP') return blob;
+
+  const exifData = buildExif72dpi(); // 72 bytes (even – no padding needed)
+  // EXIF RIFF chunk = "EXIF" + size(4) + data(72) = 80 bytes
+  const exifChunk = new Uint8Array(80);
+  exifChunk.set([0x45, 0x58, 0x49, 0x46], 0);
+  _write32le(exifChunk, 4, 72);
+  exifChunk.set(exifData, 8);
+
+  const firstChunk = _readStr4(orig, 12);
+
+  if (firstChunk === 'VP8 ' || firstChunk === 'VP8L') {
+    // Simple → Extended: prepend VP8X chunk, append EXIF chunk
+    const vp8x = new Uint8Array(18);
+    vp8x.set([0x56, 0x50, 0x38, 0x58], 0); // "VP8X"
+    _write32le(vp8x, 4, 10);
+    _write32le(vp8x, 8, 0x00000008); // EXIF flag
+    _write24le(vp8x, 12, canvasWidth - 1);
+    _write24le(vp8x, 15, canvasHeight - 1);
+
+    const origChunks = orig.slice(12);
+    const payloadSize = 4 + vp8x.length + origChunks.length + exifChunk.length;
+    const out = new Uint8Array(8 + payloadSize);
+    let p = 0;
+    out.set([0x52, 0x49, 0x46, 0x46], p); p += 4;
+    _write32le(out, p, payloadSize); p += 4;
+    out.set([0x57, 0x45, 0x42, 0x50], p); p += 4;
+    out.set(vp8x, p); p += vp8x.length;
+    out.set(origChunks, p); p += origChunks.length;
+    out.set(exifChunk, p);
+    return new Blob([out], { type: 'image/webp' });
+  }
+
+  if (firstChunk === 'VP8X') {
+    // Extended: set EXIF flag, append EXIF chunk
+    const out = new Uint8Array(orig.length + exifChunk.length);
+    out.set(orig);
+    _write32le(out, 20, _read32le(out, 20) | 0x00000008);
+    out.set(exifChunk, orig.length);
+    _write32le(out, 4, out.length - 8);
+    return new Blob([out], { type: 'image/webp' });
+  }
+
+  return blob;
+}
+
 // Download-Logik: nur WebP
 downloadBtn.addEventListener('click', async () => {
   const targets = selectionMode ? images.filter(i => i.selected) : images.slice();
@@ -894,7 +995,8 @@ downloadBtn.addEventListener('click', async () => {
   const outExt = 'webp';
 
   async function exportToWebpBlob(canvas) {
-    return new Promise(resolve => canvas.toBlob(resolve, outMime, 0.92));
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, webpQuality / 100));
+    return addExifDpiToWebP(blob, canvas.width, canvas.height);
   }
 
   if (targets.length === 1) {
