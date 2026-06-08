@@ -896,25 +896,25 @@ async function canvasToSvg(canvas) {
 
 // === WebP EXIF: 72 DPI injection ===
 function buildExif72dpi() {
-  const d = new Uint8Array(72);
-  // "Exif\0\0"
-  d.set([0x45, 0x78, 0x69, 0x66, 0x00, 0x00], 0);
-  // TIFF header (little-endian "II", magic 42, IFD offset 8)
-  d.set([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00], 6);
+  // WebP EXIF chunk payload = raw TIFF data, NO "Exif\0\0" prefix (that's JPEG-only)
+  // 66 bytes: TIFF header + IFD with 3 entries + rational values
+  const d = new Uint8Array(66);
+  // TIFF header: "II" (little-endian), magic 42, IFD at offset 8
+  d.set([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00], 0);
   // IFD entry count = 3
-  d.set([0x03, 0x00], 14);
-  // Entry 1: XResolution (tag 0x011A, RATIONAL, count 1, TIFF offset 50)
-  d.set([0x1A, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00], 16);
-  // Entry 2: YResolution (tag 0x011B, RATIONAL, count 1, TIFF offset 58)
-  d.set([0x1B, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0x00], 28);
-  // Entry 3: ResolutionUnit (tag 0x0128, SHORT, count 1, value 2=inch)
-  d.set([0x28, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00], 40);
+  d.set([0x03, 0x00], 8);
+  // Entry 1: XResolution (tag 0x011A, RATIONAL, count 1, value at TIFF offset 50)
+  d.set([0x1A, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x32, 0x00, 0x00, 0x00], 10);
+  // Entry 2: YResolution (tag 0x011B, RATIONAL, count 1, value at TIFF offset 58)
+  d.set([0x1B, 0x01, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3A, 0x00, 0x00, 0x00], 22);
+  // Entry 3: ResolutionUnit (tag 0x0128, SHORT, count 1, value 2 = inch)
+  d.set([0x28, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00], 34);
   // Next IFD offset = 0
-  d.set([0x00, 0x00, 0x00, 0x00], 52);
-  // XResolution = 72/1 at TIFF offset 50 (array position 56)
-  d.set([0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], 56);
-  // YResolution = 72/1 at TIFF offset 58 (array position 64)
-  d.set([0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], 64);
+  d.set([0x00, 0x00, 0x00, 0x00], 46);
+  // XResolution = 72/1 at offset 50
+  d.set([0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], 50);
+  // YResolution = 72/1 at offset 58
+  d.set([0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00], 58);
   return d;
 }
 
@@ -942,11 +942,11 @@ async function addExifDpiToWebP(blob, canvasWidth, canvasHeight) {
   const orig = new Uint8Array(origBuf);
   if (orig.length < 12 || _readStr4(orig, 0) !== 'RIFF' || _readStr4(orig, 8) !== 'WEBP') return blob;
 
-  const exifData = buildExif72dpi(); // 72 bytes (even – no padding needed)
-  // EXIF RIFF chunk = "EXIF" + size(4) + data(72) = 80 bytes
-  const exifChunk = new Uint8Array(80);
+  const exifData = buildExif72dpi(); // 66 bytes raw TIFF (even – no padding needed)
+  // EXIF RIFF chunk = "EXIF" + size(4) + data(66) = 74 bytes
+  const exifChunk = new Uint8Array(74);
   exifChunk.set([0x45, 0x58, 0x49, 0x46], 0);
-  _write32le(exifChunk, 4, 72);
+  _write32le(exifChunk, 4, 66);
   exifChunk.set(exifData, 8);
 
   const firstChunk = _readStr4(orig, 12);
