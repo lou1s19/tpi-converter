@@ -7,12 +7,12 @@
   <title>WebP-Converter - TPI Media</title>
   <link rel="icon" type="image/png" href="../bilder/fav.png" />
   <link rel="stylesheet" href="../vendor/cropper.min.css" />
-  <link rel="stylesheet" href="../css/webp-converter.css?v=1.2" />
+  <link rel="stylesheet" href="../css/webp-converter.css?v=1.5" />
   <script defer src="../vendor/jszip.min.js"></script>
   <script defer src="../vendor/heic2any.min.js"></script>
   <script defer src="../vendor/piexif.min.js"></script>
   <script defer src="../vendor/cropper.min.js"></script>
-  <script type="module" src="../js/webp-converter.js?v=1.2"></script>
+  <script type="module" src="../js/webp-converter.js?v=1.5"></script>
 </head>
 
 <body class="converter-page">
@@ -151,8 +151,8 @@
                 <div class="quality-row">
                   <span class="quality-label">Qualität</span>
                   <div class="quality-slider-group">
-                    <input type="range" id="quality-slider" min="0" max="100" value="92" class="quality-slider" />
-                    <span id="quality-value" class="quality-val">92%</span>
+                    <input type="range" id="quality-slider" min="0" max="100" value="82" class="quality-slider" />
+                    <span id="quality-value" class="quality-val">82%</span>
                   </div>
                 </div>
               </div>
@@ -163,6 +163,7 @@
                 <button id="duplicate-selected-btn" class="secondary-button selection-action" type="button" disabled>Duplizieren</button>
                 <button id="delete-selected-btn" class="secondary-button danger-button selection-action" type="button" disabled>Löschen</button>
               </div>
+              <div id="download-result" class="download-result"></div>
 
               <div class="secondary-actions">
                 <label class="append-toggle">

@@ -33,7 +33,7 @@ let selectionMode = false;
 let currentCropIndex = null;
 let cropper = null;
 const MAX_IMAGES = 50;
-let webpQuality = 92;
+let webpQuality = 82;
 
 // === Undo-History ===
 let undoHistory = [];
@@ -101,6 +101,28 @@ const MIME_BY_FMT = {
 };
 
 const isPortrait = (item) => item.img.height >= item.img.width;
+
+function formatBytes(bytes) {
+  if (!bytes) return '–';
+  if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+  if (bytes >= 1024) return Math.round(bytes / 1024) + ' KB';
+  return bytes + ' B';
+}
+
+function showDownloadResult(origBytes, outBytes, count) {
+  const el = document.getElementById('download-result');
+  if (!el) return;
+  const isSmaller = outBytes < origBytes;
+  const pct = origBytes ? Math.round(((origBytes - outBytes) / origBytes) * 100) : 0;
+  const countStr = count > 1 ? `${count} Bilder · ` : '';
+  if (isSmaller) {
+    el.className = 'download-result success';
+    el.innerHTML = `✓ ${countStr}${formatBytes(origBytes)} → ${formatBytes(outBytes)} · <strong>${pct}% kleiner</strong>`;
+  } else {
+    el.className = 'download-result warning';
+    el.innerHTML = `⚠ ${countStr}${formatBytes(origBytes)} → ${formatBytes(outBytes)} · Bereits optimal komprimiert`;
+  }
+}
 const MAX_PIXEL_SIZE = 20000;
 const blockNonNumericKeys = (event) => {
   const allowedKeys = [
@@ -365,6 +387,7 @@ function renderGallery() {
     meta.innerHTML = `
       <div>Name: <span class="filename" title="${fullName}">${displayName}</span></div>
       <div>Original: ${item.origWidth} × ${item.origHeight} px</div>
+      ${item.filesize ? `<div class="file-size-row"><span class="size-tag size-orig">${formatBytes(item.filesize)}</span></div>` : ''}
     `;
 
     card.appendChild(meta);
@@ -994,19 +1017,30 @@ downloadBtn.addEventListener('click', async () => {
   const outMime = 'image/webp';
   const outExt = 'webp';
 
-  async function exportToWebpBlob(canvas) {
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, webpQuality / 100));
-    return addExifDpiToWebP(blob, canvas.width, canvas.height);
+  async function exportToWebpBlob(canvas, originalFileSize) {
+    let quality = webpQuality;
+    let blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, quality / 100));
+    blob = await addExifDpiToWebP(blob, canvas.width, canvas.height);
+
+    // Automatisch Qualität reduzieren falls WebP größer als Original
+    while (originalFileSize && blob.size > originalFileSize && quality > 50) {
+      quality = Math.max(50, quality - 10);
+      blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, quality / 100));
+      blob = await addExifDpiToWebP(blob, canvas.width, canvas.height);
+    }
+
+    return blob;
   }
 
   if (targets.length === 1) {
     const item = targets[0];
     const canvas = makeExportCanvas(item);
-    const blob = await exportToWebpBlob(canvas);
+    const blob = await exportToWebpBlob(canvas, item.filesize);
     if (!blob) {
       alert('❌ Fehler beim Erstellen des Bildes.');
       return;
     }
+    showDownloadResult(item.filesize, blob.size, 1);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = makeOutName(item, outExt, targets);
@@ -1018,12 +1052,16 @@ downloadBtn.addEventListener('click', async () => {
   showSpinner(true);
   const zip = new JSZip();
   let processed = 0;
+  let totalOrig = 0;
+  let totalOut = 0;
 
   for (const item of targets) {
     const canvas = makeExportCanvas(item);
-    const blob = await exportToWebpBlob(canvas);
+    const blob = await exportToWebpBlob(canvas, item.filesize);
     if (blob) {
       zip.file(makeOutName(item, outExt, targets), blob);
+      totalOrig += item.filesize || 0;
+      totalOut += blob.size;
     }
     processed++;
     loadBar.value = (processed / targets.length) * 100;
@@ -1035,6 +1073,7 @@ downloadBtn.addEventListener('click', async () => {
   a.download = 'bilder-webp.zip';
   a.click();
   URL.revokeObjectURL(a.href);
+  showDownloadResult(totalOrig, totalOut, targets.length);
   showSpinner(false);
 });
 
@@ -1271,6 +1310,7 @@ async function handleFiles(fileList, opts = {}) {
       img,
       fileType: file.type,
       filename: file.name,
+      filesize: file.size,
       origWidth: img.width,
       origHeight: img.height,
       scalePercent: 100,
