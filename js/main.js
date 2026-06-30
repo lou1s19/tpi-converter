@@ -15,7 +15,7 @@ const translations = {
 };
 
 // --- Beta Access Config ---
-const ADMIN_PASSWORD = '123'; // Ändere das Passwort hier
+const ADMIN_PASSWORD = '123';
 
 function isBetaUnlocked() {
   try {
