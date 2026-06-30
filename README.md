@@ -17,8 +17,6 @@ The application provides a fast and intuitive way to perform conversions through
 - CSS
 - JavaScript
 
-> *(Replace with your actual stack if you're using React, Vue, PHP, etc.)*
-
 ## Installation
 
 Clone the repository:
