@@ -109,12 +109,19 @@ function formatBytes(bytes) {
   return bytes + ' B';
 }
 
-function showDownloadResult(origBytes, outBytes, count) {
+function showDownloadResult(origBytes, outBytes, count, webpUnsupported = false) {
   const el = document.getElementById('download-result');
   if (!el) return;
   const isSmaller = outBytes < origBytes;
   const pct = origBytes ? Math.round(((origBytes - outBytes) / origBytes) * 100) : 0;
   const countStr = count > 1 ? `${count} Bilder · ` : '';
+
+  if (webpUnsupported) {
+    el.className = 'download-result warning';
+    el.innerHTML = `⚠ Dein Browser (Safari/iOS) unterstützt keine WebP-Erstellung – ${countStr}als PNG gespeichert · ${formatBytes(origBytes)} → ${formatBytes(outBytes)}`;
+    return;
+  }
+
   if (isSmaller) {
     el.className = 'download-result success';
     el.innerHTML = `✓ ${countStr}${formatBytes(origBytes)} → ${formatBytes(outBytes)} · <strong>${pct}% kleiner</strong>`;
@@ -1009,23 +1016,46 @@ async function addExifDpiToWebP(blob, canvasWidth, canvasHeight) {
   return blob;
 }
 
-// Download-Logik: nur WebP
+// Manche Browser (v.a. Safari/WebKit auf macOS und iOS) können über Canvas
+// kein WebP *kodieren* - nur anzeigen. canvas.toBlob(...,'image/webp',...) liefert
+// dort laut Spec still einen PNG-Blob zurück (blob.type === 'image/png'), ohne Fehler.
+// Deshalb NIE den angeforderten Mime-Type annehmen, sondern immer den tatsächlichen
+// blob.type prüfen und Dateiendung/Weiterverarbeitung danach richten.
+const EXT_BY_MIME = {
+  'image/webp': 'webp',
+  'image/png': 'png',
+  'image/jpeg': 'jpg'
+};
+
+// Download-Logik: WebP, mit Fallback auf PNG falls der Browser kein WebP-Encoding kann
 downloadBtn.addEventListener('click', async () => {
   const targets = selectionMode ? images.filter(i => i.selected) : images.slice();
   if (!targets.length) return;
 
   const outMime = 'image/webp';
-  const outExt = 'webp';
+  let webpUnsupported = false;
 
   async function exportToWebpBlob(canvas, originalFileSize) {
     let quality = webpQuality;
     let blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, quality / 100));
+    if (!blob) return null;
+
+    if (blob.type !== outMime) {
+      // Browser hat still auf ein anderes Format zurückgefallen (z.B. Safari -> PNG)
+      webpUnsupported = true;
+      return blob;
+    }
+
     blob = await addExifDpiToWebP(blob, canvas.width, canvas.height);
 
     // Automatisch Qualität reduzieren falls WebP größer als Original
     while (originalFileSize && blob.size > originalFileSize && quality > 50) {
       quality = Math.max(50, quality - 10);
       blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, quality / 100));
+      if (!blob || blob.type !== outMime) {
+        if (blob) webpUnsupported = true;
+        break;
+      }
       blob = await addExifDpiToWebP(blob, canvas.width, canvas.height);
     }
 
@@ -1040,7 +1070,8 @@ downloadBtn.addEventListener('click', async () => {
       alert('❌ Fehler beim Erstellen des Bildes.');
       return;
     }
-    showDownloadResult(item.filesize, blob.size, 1);
+    const outExt = EXT_BY_MIME[blob.type] || 'webp';
+    showDownloadResult(item.filesize, blob.size, 1, webpUnsupported);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = makeOutName(item, outExt, targets);
@@ -1059,6 +1090,7 @@ downloadBtn.addEventListener('click', async () => {
     const canvas = makeExportCanvas(item);
     const blob = await exportToWebpBlob(canvas, item.filesize);
     if (blob) {
+      const outExt = EXT_BY_MIME[blob.type] || 'webp';
       zip.file(makeOutName(item, outExt, targets), blob);
       totalOrig += item.filesize || 0;
       totalOut += blob.size;
@@ -1070,10 +1102,10 @@ downloadBtn.addEventListener('click', async () => {
   const content = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(content);
-  a.download = 'bilder-webp.zip';
+  a.download = webpUnsupported ? 'bilder-png.zip' : 'bilder-webp.zip';
   a.click();
   URL.revokeObjectURL(a.href);
-  showDownloadResult(totalOrig, totalOut, targets.length);
+  showDownloadResult(totalOrig, totalOut, targets.length, webpUnsupported);
   showSpinner(false);
 });
 
