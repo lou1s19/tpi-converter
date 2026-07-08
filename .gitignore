@@ -1,0 +1,18 @@
+# Development & IDE
+.claude/
+.vscode/
+.idea/
+
+# Test data
+test-bilder/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git internals (not needed in deployment)
+.git/
+.gitattributes
+
+# Build artifacts
+*.log

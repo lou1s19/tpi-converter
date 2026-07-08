@@ -391,11 +391,29 @@ function renderGallery() {
       ? (base + ext)
       : (base.slice(0, Math.max(3, max - ext.length - 3)) + '...' + ext);
 
-    meta.innerHTML = `
-      <div>Name: <span class="filename" title="${fullName}">${displayName}</span></div>
-      <div>Original: ${item.origWidth} × ${item.origHeight} px</div>
-      ${item.filesize ? `<div class="file-size-row"><span class="size-tag size-orig">${formatBytes(item.filesize)}</span></div>` : ''}
-    `;
+    // Safe DOM construction – no innerHTML with user data
+    const nameDiv = document.createElement('div');
+    nameDiv.textContent = 'Name: ';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'filename';
+    nameSpan.setAttribute('title', fullName);
+    nameSpan.textContent = displayName;
+    nameDiv.appendChild(nameSpan);
+    meta.appendChild(nameDiv);
+
+    const dimsDiv = document.createElement('div');
+    dimsDiv.textContent = `Original: ${item.origWidth} × ${item.origHeight} px`;
+    meta.appendChild(dimsDiv);
+
+    if (item.filesize) {
+      const sizeDiv = document.createElement('div');
+      sizeDiv.className = 'file-size-row';
+      const sizeSpan = document.createElement('span');
+      sizeSpan.className = 'size-tag size-orig';
+      sizeSpan.textContent = formatBytes(item.filesize);
+      sizeDiv.appendChild(sizeSpan);
+      meta.appendChild(sizeDiv);
+    }
 
     card.appendChild(meta);
 
@@ -404,15 +422,20 @@ function renderGallery() {
     const nameWrap = document.createElement('div');
     nameWrap.className = 'name-edit';
 
-    nameWrap.innerHTML = `
-      <label>Bildname:</label>
-      <input class="name-input" type="text"
-             value="${(item.customName ?? item.filename).replace(/\.[^.]+$/, '')}" style="width:100%; box-sizing:border-box; margin-top:2px;" />
-    `;
+    // Safe DOM construction – no innerHTML with user data
+    const nameLabel = document.createElement('label');
+    nameLabel.textContent = 'Bildname:';
+    nameWrap.appendChild(nameLabel);
+    const nameInput = document.createElement('input');
+    nameInput.className = 'name-input';
+    nameInput.type = 'text';
+    nameInput.value = (item.customName ?? item.filename).replace(/\.[^.]+$/, '');
+    nameInput.style.cssText = 'width:100%; box-sizing:border-box; margin-top:2px;';
+    nameWrap.appendChild(nameInput);
     card.appendChild(nameWrap);
 
     // Listener: geänderten Namen in item.customName speichern (ohne Extension)
-    const nameInp = nameWrap.querySelector('.name-input');
+    const nameInp = nameInput;
     nameInp.addEventListener('change', () => {
       const base = nameInp.value.trim();
       if (!base) return;            // leere Eingaben ignorieren

@@ -1,0 +1,50 @@
+# Security Headers for Apache (Plesk)
+# ====================================
+
+<IfModule mod_headers.c>
+    # Prevent MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Prevent clickjacking
+    Header always set X-Frame-Options "DENY"
+
+    # XSS Protection (legacy browsers)
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Referrer Policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Content Security Policy
+    # - Scripts only from same origin
+    # - Styles from same origin + inline (needed for dynamic styling)
+    # - Images from same origin + data: URIs (canvas exports) + blob: (object URLs)
+    # - Workers from same origin + blob: (HEIC worker)
+    # - No object/embed/frame
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+    # Permissions Policy – disable unnecessary browser APIs
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+
+    # HSTS – enforce HTTPS (uncomment after confirming HTTPS works)
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
+
+# Block access to hidden files and directories
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule "(^|/)\.(?!well-known)" - [F]
+</IfModule>
+
+# Block access to sensitive file types
+<FilesMatch "\.(md|sh|gitignore|gitattributes)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

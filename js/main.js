@@ -14,74 +14,7 @@ const translations = {
   }
 };
 
-// --- Beta Access Config ---
-const ADMIN_PASSWORD = '123';
 
-function isBetaUnlocked() {
-  try {
-    return localStorage.getItem('betaAccess') === 'true';
-  } catch (e) {
-    return false;
-  }
-}
-
-function setBetaUnlocked(unlocked) {
-  try {
-    if (unlocked) {
-      localStorage.setItem('betaAccess', 'true');
-    } else {
-      localStorage.removeItem('betaAccess');
-    }
-  } catch (e) {
-    // ignore
-  }
-}
-
-function updateBetaVisibility() {
-  const betaCards = document.querySelectorAll('[data-beta="true"]');
-  const unlocked = isBetaUnlocked();
-  betaCards.forEach(card => {
-    if (unlocked) {
-      card.classList.remove('hidden');
-    } else {
-      card.classList.add('hidden');
-    }
-  });
-
-  const betaBtn = document.getElementById('betaBtn');
-  if (betaBtn) {
-    const betaLabel = betaBtn.querySelector('.beta-text');
-    if (betaLabel) {
-      betaLabel.textContent = unlocked ? 'Beta On' : 'Beta';
-    }
-    betaBtn.setAttribute('title', unlocked ? 'Beta-Tools gesperren' : 'Beta-Tools entsperren');
-  }
-}
-
-function setupBetaAccess() {
-  const betaBtn = document.getElementById('betaBtn');
-  if (!betaBtn) return;
-
-  betaBtn.addEventListener('click', () => {
-    if (isBetaUnlocked()) {
-      setBetaUnlocked(false);
-      updateBetaVisibility();
-      alert('Beta-Tools wurden gesperrt.');
-      return;
-    }
-    const pw = prompt('Admin-Passwort eingeben, um Beta-Tools zu entsperren:');
-    if (pw && pw === ADMIN_PASSWORD) {
-      setBetaUnlocked(true);
-      updateBetaVisibility();
-      alert('Beta-Tools entsperrt.');
-    } else if (pw !== null) {
-      alert('Falsches Passwort.');
-    }
-  });
-
-  // initial state on load
-  updateBetaVisibility();
-}
 
 // Current language
 let currentLang = 'de';
@@ -226,41 +159,6 @@ function setupCategoryFilter() {
   });
 }
 
-// Feedback form submission (Netlify)
-function setupFeedbackForm() {
-  const form = document.getElementById('feedbackForm');
-  const successMessage = document.getElementById('successMessage');
-  if (!form || !successMessage) {
-    return;
-  }
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(form);
-
-    try {
-      const response = await fetch("/", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams(formData).toString(),
-      });
-
-      if (response.ok) {
-        successMessage.classList.remove("hidden");
-        form.reset();
-        successMessage.scrollIntoView({ behavior: "smooth", block: "center" });
-
-        setTimeout(() => successMessage.classList.add("hidden"), 5000);
-      } else {
-        alert("Fehler beim Senden. Bitte erneut versuchen.");
-      }
-    } catch (error) {
-      console.error("Form submission failed:", error);
-      alert("Fehler beim Senden. Bitte erneut versuchen.");
-    }
-  });
-}
 
 
 // Mobile menu toggle
@@ -284,9 +182,7 @@ function setupMobileMenu() {
 // Initialize all functionality when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   setupCategoryFilter();
-  setupFeedbackForm();
-  setupBetaAccess();
   setupMobileMenu();
-  
+
   console.log('Transformers initialized successfully.');
 });
