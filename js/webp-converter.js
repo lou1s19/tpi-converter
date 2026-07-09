@@ -109,25 +109,40 @@ function formatBytes(bytes) {
   return bytes + ' B';
 }
 
-function showDownloadResult(origBytes, outBytes, count, webpUnsupported = false) {
+function showDownloadResult(origBytes, outBytes, count, webpUnsupported = false, usedQuality = null) {
   const el = document.getElementById('download-result');
   if (!el) return;
   const isSmaller = outBytes < origBytes;
   const pct = origBytes ? Math.round(((origBytes - outBytes) / origBytes) * 100) : 0;
+  const absPct = Math.abs(pct);
   const countStr = count > 1 ? `${count} Bilder · ` : '';
+
+  // Info-Tooltip-HTML bauen
+  function infoTip(text) {
+    return ` <span class="info-tip" tabindex="0" aria-label="Info"><span class="info-tip-icon">ℹ</span><span class="info-tip-bubble">${text}</span></span>`;
+  }
 
   if (webpUnsupported) {
     el.className = 'download-result warning';
-    el.innerHTML = `⚠ Dein Browser (Safari/iOS) unterstützt keine WebP-Erstellung – ${countStr}als PNG gespeichert · ${formatBytes(origBytes)} → ${formatBytes(outBytes)}`;
+    el.innerHTML = `⚠ Dein Browser (Safari/iOS) unterstützt keine WebP-Erstellung – ${countStr}als PNG gespeichert · ${formatBytes(origBytes)} → ${formatBytes(outBytes)}`
+      + infoTip('Safari und ältere iOS-Browser können über die Canvas-API kein WebP <em>erstellen</em>. Dein Bild wurde stattdessen als PNG gespeichert. Verwende Chrome, Edge oder Firefox für echte WebP-Konvertierung.');
     return;
   }
 
   if (isSmaller) {
     el.className = 'download-result success';
-    el.innerHTML = `✓ ${countStr}${formatBytes(origBytes)} → ${formatBytes(outBytes)} · <strong>${pct}% kleiner</strong>`;
+    const qualityNote = usedQuality !== null && usedQuality !== webpQuality
+      ? ` (Qualität auto-reduziert auf ${usedQuality}%)`
+      : '';
+    el.innerHTML = `✓ ${countStr}${formatBytes(origBytes)} → ${formatBytes(outBytes)} · <strong>${pct}% kleiner</strong>${qualityNote}`
+      + infoTip('WebP nutzt fortschrittliche Komprimierung, die bei den meisten Fotos und Grafiken deutlich kleinere Dateien erzeugt als PNG oder JPEG – bei vergleichbarer Qualität.');
   } else {
     el.className = 'download-result warning';
-    el.innerHTML = `⚠ ${countStr}${formatBytes(origBytes)} → ${formatBytes(outBytes)} · Bereits optimal komprimiert`;
+    const biggerNote = outBytes > origBytes
+      ? ` · <strong>${absPct}% größer</strong>`
+      : '';
+    el.innerHTML = `⚠ ${countStr}${formatBytes(origBytes)} → ${formatBytes(outBytes)}${biggerNote} · Bereits optimal komprimiert`
+      + infoTip('Sehr kleine oder bereits stark komprimierte Bilder (z.&nbsp;B. einfache PNGs mit wenigen Farben) können nach der WebP-Konvertierung <em>größer</em> werden. Der WebP-Header und die verlustbehaftete Kodierung erzeugen bei solchen Dateien mehr Overhead, als die Komprimierung einspart. In solchen Fällen ist es besser, das Original zu behalten.');
   }
 }
 const MAX_PIXEL_SIZE = 20000;
@@ -1060,13 +1075,14 @@ downloadBtn.addEventListener('click', async () => {
 
   async function exportToWebpBlob(canvas, originalFileSize) {
     let quality = webpQuality;
+    const startQuality = quality;
     let blob = await new Promise(resolve => canvas.toBlob(resolve, outMime, quality / 100));
-    if (!blob) return null;
+    if (!blob) return { blob: null, usedQuality: quality };
 
     if (blob.type !== outMime) {
       // Browser hat still auf ein anderes Format zurückgefallen (z.B. Safari -> PNG)
       webpUnsupported = true;
-      return blob;
+      return { blob, usedQuality: quality };
     }
 
     blob = await addExifDpiToWebP(blob, canvas.width, canvas.height);
@@ -1082,19 +1098,19 @@ downloadBtn.addEventListener('click', async () => {
       blob = await addExifDpiToWebP(blob, canvas.width, canvas.height);
     }
 
-    return blob;
+    return { blob, usedQuality: quality !== startQuality ? quality : null };
   }
 
   if (targets.length === 1) {
     const item = targets[0];
     const canvas = makeExportCanvas(item);
-    const blob = await exportToWebpBlob(canvas, item.filesize);
+    const { blob, usedQuality } = await exportToWebpBlob(canvas, item.filesize);
     if (!blob) {
       alert('❌ Fehler beim Erstellen des Bildes.');
       return;
     }
     const outExt = EXT_BY_MIME[blob.type] || 'webp';
-    showDownloadResult(item.filesize, blob.size, 1, webpUnsupported);
+    showDownloadResult(item.filesize, blob.size, 1, webpUnsupported, usedQuality);
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = makeOutName(item, outExt, targets);
@@ -1109,14 +1125,16 @@ downloadBtn.addEventListener('click', async () => {
   let totalOrig = 0;
   let totalOut = 0;
 
+  let lastUsedQuality = null;
   for (const item of targets) {
     const canvas = makeExportCanvas(item);
-    const blob = await exportToWebpBlob(canvas, item.filesize);
+    const { blob, usedQuality } = await exportToWebpBlob(canvas, item.filesize);
     if (blob) {
       const outExt = EXT_BY_MIME[blob.type] || 'webp';
       zip.file(makeOutName(item, outExt, targets), blob);
       totalOrig += item.filesize || 0;
       totalOut += blob.size;
+      if (usedQuality !== null) lastUsedQuality = usedQuality;
     }
     processed++;
     loadBar.value = (processed / targets.length) * 100;
@@ -1128,7 +1146,7 @@ downloadBtn.addEventListener('click', async () => {
   a.download = webpUnsupported ? 'bilder-png.zip' : 'bilder-webp.zip';
   a.click();
   URL.revokeObjectURL(a.href);
-  showDownloadResult(totalOrig, totalOut, targets.length, webpUnsupported);
+  showDownloadResult(totalOrig, totalOut, targets.length, webpUnsupported, lastUsedQuality);
   showSpinner(false);
 });
 
@@ -1904,5 +1922,64 @@ function setupMobileMenu() {
 }
 
 setupMobileMenu();
+
+// === Safari / iOS Erkennung: Banner anzeigen ===
+function detectSafari() {
+  const ua = navigator.userAgent;
+  // Safari auf macOS: enthält "Safari" aber NICHT "Chrome", "Chromium", "Edg", "OPR", "Firefox"
+  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Firefox/i.test(ua);
+  // iOS-WebView: alle iOS-Browser nutzen WebKit (inkl. Chrome auf iOS)
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  if (isSafari || isIOS) {
+    // Canvas WebP encoding testen
+    const testCanvas = document.createElement('canvas');
+    testCanvas.width = 1;
+    testCanvas.height = 1;
+    const dataUrl = testCanvas.toDataURL('image/webp');
+    const canEncodeWebP = dataUrl.startsWith('data:image/webp');
+
+    if (!canEncodeWebP) {
+      showSafariBanner();
+    }
+  }
+}
+
+function showSafariBanner() {
+  // Prüfen ob Banner schon geschlossen wurde (Session)
+  if (sessionStorage.getItem('safari-banner-dismissed')) return;
+
+  const banner = document.createElement('div');
+  banner.className = 'safari-banner';
+  banner.id = 'safari-banner';
+  banner.innerHTML = `
+    <div class="safari-banner-content">
+      <span class="safari-banner-icon">⚠</span>
+      <div class="safari-banner-text">
+        <strong>Safari/iOS erkannt</strong> – Dein Browser kann keine WebP-Dateien erstellen.
+        Bilder werden stattdessen als PNG exportiert. Für echte WebP-Konvertierung verwende
+        <strong>Chrome</strong>, <strong>Edge</strong> oder <strong>Firefox</strong>.
+      </div>
+      <button class="safari-banner-close" id="safari-banner-close" aria-label="Hinweis schließen">✕</button>
+    </div>
+  `;
+
+  // Banner vor dem Workspace einfügen
+  const workspace = document.querySelector('.workspace');
+  if (workspace) {
+    workspace.prepend(banner);
+  } else {
+    document.body.prepend(banner);
+  }
+
+  // Schließen-Button
+  document.getElementById('safari-banner-close')?.addEventListener('click', () => {
+    banner.classList.add('dismissed');
+    sessionStorage.setItem('safari-banner-dismissed', '1');
+    setTimeout(() => banner.remove(), 300);
+  });
+}
+
+detectSafari();
 
 updateUI();

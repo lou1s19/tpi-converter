@@ -701,6 +701,153 @@ body.replace-mode .primary-cta {
   border: 1px solid #ffcc80;
 }
 
+/* ── Info-Tooltip (ℹ neben Ergebnis-Nachrichten) ── */
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 6px;
+  cursor: help;
+}
+
+.info-tip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: inherit;
+  transition: background 160ms ease, transform 160ms ease;
+  line-height: 1;
+}
+
+.info-tip:hover .info-tip-icon,
+.info-tip:focus .info-tip-icon {
+  background: rgba(0, 0, 0, 0.16);
+  transform: scale(1.1);
+}
+
+.info-tip-bubble {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max(240px, min(360px, 60vw));
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #1a1a2e;
+  color: #f0f0f5;
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.55;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.info-tip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1a1a2e;
+}
+
+.info-tip:hover .info-tip-bubble,
+.info-tip:focus .info-tip-bubble {
+  display: block;
+  animation: infoFadeIn 180ms ease;
+}
+
+@keyframes infoFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Safari-Banner ── */
+.safari-banner {
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  animation: bannerSlideIn 400ms ease;
+}
+
+.safari-banner.dismissed {
+  animation: bannerSlideOut 300ms ease forwards;
+}
+
+.safari-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fff3e0, #fff8e1);
+  border: 1px solid #ffcc80;
+  border-radius: var(--radius-md);
+}
+
+.safari-banner-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 138, 0, 0.15);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.safari-banner-text {
+  flex: 1;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #7a4900;
+}
+
+.safari-banner-text strong {
+  color: #5a3500;
+}
+
+.safari-banner-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  color: #7a4900;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 160ms ease;
+}
+
+.safari-banner-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes bannerSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bannerSlideOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+
 .name-edit {
   display: grid;
   gap: 8px;
